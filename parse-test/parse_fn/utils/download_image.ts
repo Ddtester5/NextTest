@@ -2,14 +2,16 @@ import path from "path";
 import fs from "fs";
 import { IMG_DIR } from "./const";
 import axios from "axios";
+import { getImageName } from "./get_image_name";
 
 export const downloadImage = async (
   url: string,
-  filename: string,
-  imgType: string,
+  textForFilename: string | undefined,
+  imgDir: string,
 ) => {
   try {
-    const imagePath = path.join(IMG_DIR, imgType, filename);
+    const imgName = getImageName(textForFilename);
+    const imagePath = path.join(IMG_DIR, imgDir, imgName);
     const response = await axios.get(url, {
       responseType: "arraybuffer",
       headers: {

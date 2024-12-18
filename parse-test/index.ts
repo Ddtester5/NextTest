@@ -1,12 +1,7 @@
 import { chromium, Page } from "playwright";
 import fs from "fs";
 import path from "path";
-import { setupDirectories } from "./parse_fn/setup_dirs";
-
-
-
-
-  
+import { setupDirectories } from "./parse_fn/utils/setup_dirs";
 
 // Парсинг обзоров
 async function parseReviews(page: Page) {
