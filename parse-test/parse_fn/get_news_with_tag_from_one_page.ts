@@ -23,7 +23,7 @@ export const parseNewsFromOnePage = async (page: Page, url?: string | null) => {
     if (!article.link) continue;
     await page.goto(`https://www.gsmarena.com/${article.link}`);
     const content = await page.locator(".review-body p").allTextContents();
-    content.pop();
+    const contentRes = content.join(" ");
     const tags = await page
       .locator(".article-tags .float-right a")
       .evaluateAll((tags) =>
@@ -56,9 +56,9 @@ export const parseNewsFromOnePage = async (page: Page, url?: string | null) => {
 
     news.push({
       title: article.title,
-      content,
-      previewPath: previewPath,
-      contentImagesPaths,
+      content: contentRes,
+      previewImage: previewPath,
+      images: contentImagesPaths,
       tags,
     });
   }

@@ -1,2 +1,2 @@
-export const IMG_DIR = "./parse_results/img";
-export const DATA_DIR = "./parse_results/data";
+export const IMG_DIR = "./parse_results/init/img";
+export const DATA_DIR = "./parse_results/init/data";
