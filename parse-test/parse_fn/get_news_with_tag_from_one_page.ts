@@ -67,5 +67,4 @@ export const parseNewsFromOnePage = async (page: Page, url?: string | null) => {
     path.join(DATA_DIR, "news.json"),
     JSON.stringify(news, null, 2),
   );
-  console.log("News parsed and saved.");
 };

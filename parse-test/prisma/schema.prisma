@@ -27,11 +27,12 @@ model Tag {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  title String @unique
-  news  News[] @relation("NewsTags")
+  title   String    @unique
+  news    News[]    @relation("NewsTags")
+  reviews Reviews[] @relation("ReviewsTags")
 }
 
-model Post {
+model Reviews {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -41,29 +42,7 @@ model Post {
   previewImage String?  @map("preview_image")
   images       String[]
 
+  tags Tag[] @relation("ReviewsTags")
+
   views Int @default(0)
-
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  categoryId String?   @map("category_id")
-
-  @@map("posts")
-}
-
-model Category {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  image       String?
-  name        String  @unique
-  description String
-
-  posts Post[]
-
-  @@map("categories")
-}
-
-enum UserRoles {
-  USER
-  ADMIN
 }
