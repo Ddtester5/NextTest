@@ -15,7 +15,7 @@ export async function AllReviewsSeed() {
   // Чтение данных из JSON файла
   const filePath = path.join(
     __dirname,
-    "../../../parse_results/init/data/news.json",
+    "../../../parse_results/init/data/reviews.json",
   );
   const data: TReviews[] = JSON.parse(fs.readFileSync(filePath, "utf8"));
 
@@ -49,7 +49,7 @@ export async function AllReviewsSeed() {
       },
     });
 
-    console.log(`Created news with title: ${createdReviews.title}`);
+    console.log(`Created reviews with title: ${createdReviews.title}`);
     await delay(1000);
   }
 }

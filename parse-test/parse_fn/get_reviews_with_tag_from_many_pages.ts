@@ -4,69 +4,119 @@ import path from "path";
 import fs from "fs";
 import { DATA_DIR } from "./utils/const";
 
-export const parseNewsFromManyPages = async (page: Page, n: number) => {
-  const news = [];
+export const parseReviewsFromManyPages = async (page: Page, n: number) => {
+  const reviews = [];
   for (let i = 1; i <= n; i++) {
-    console.log(`Parsing news from page ${i}`);
-
-    await page.goto(`https://www.gsmarena.com/news.php3?iPage=${i}`, {
+    console.log(`Parsing reviews from page ${i}`);
+    await page.goto(`https://www.gsmarena.com/reviews.php3?iPage=${i}`, {
       waitUntil: "domcontentloaded",
     });
 
-    const articles = await page.locator(".news-item").evaluateAll((elements) =>
-      elements.map((el) => ({
-        titleForImg: el.querySelector("a > h3")?.textContent?.trim(),
-        title: el.querySelector("a > h3")?.textContent?.trim(),
-        link: el.querySelector("a")?.getAttribute("href"),
-        previewImageUrl: el.querySelector("img")?.getAttribute("src"),
-      })),
-    );
+    const articles = await page
+      .locator(".review-item")
+      .evaluateAll((elements) =>
+        elements.map((el) => ({
+          titleForImg: el
+            .querySelector(".review-item-content > h3")
+            ?.textContent?.trim(),
+          title: el
+            .querySelector(".review-item-content > h3")
+            ?.textContent?.trim(),
+          link: el
+            .querySelector(".review-item-media-wrap > a")
+            ?.getAttribute("href"),
+          previewImageUrl: el
+            .querySelector(".review-item-media-wrap > a > img")
+            ?.getAttribute("src"),
+        })),
+      );
+
     for (const article of articles) {
       if (!article.link) continue;
-      await page.goto(`https://www.gsmarena.com/${article.link}`);
-      const content = await page.locator(".review-body p").allTextContents();
-      const contentRes = content.join(" ");
+
+      const contentPages: string[] = [];
+      const allImages: string[] = [];
+      let currentUrl: string | null =
+        `https://www.gsmarena.com/${article.link}`;
+
+      // Обработка всех страниц обзора
+      while (currentUrl) {
+        await page.goto(currentUrl, { waitUntil: "domcontentloaded" });
+
+        // Извлечение текста текущей страницы
+        const content = await page.locator(".review-body p").allTextContents();
+        contentPages.push(...content);
+
+        // Извлечение изображений текущей страницы
+        const imagesSrc = (await page
+          .locator(".review-body > img")
+          .evaluateAll((imgs) =>
+            imgs
+              .map((img) => img.getAttribute("src"))
+              .filter((src) => src !== null),
+          )) as string[];
+        allImages.push(...imagesSrc);
+
+        // Проверка на наличие кнопки "Next page"
+        const nextPageElement = await page.locator(".pages-next").nth(0);
+        const isDisabled = await nextPageElement.evaluate(
+          (el) =>
+            el.classList.contains("disabled") ||
+            el.getAttribute("href") === "#",
+        );
+
+        if (isDisabled) {
+          currentUrl = null; // Завершаем цикл
+        } else {
+          currentUrl = await nextPageElement.getAttribute("href");
+          if (currentUrl) {
+            currentUrl = `https://www.gsmarena.com/${currentUrl}`;
+          }
+        }
+      }
+
+      // Извлечение тегов
       const tags = await page
         .locator(".article-tags .float-right a")
         .evaluateAll((tags) =>
           tags.map((tag) => tag.textContent?.trim().toLowerCase()),
         );
-      const imagesSrc = await page
-        .locator(".review-body > img")
-        .evaluateAll((imgs) => imgs.map((img) => img.getAttribute("src")));
 
-      // Сохранение превью и всех картинок
+      // Сохранение превью изображения
       const previewPath = article.previewImageUrl
         ? await downloadImage(
             article.previewImageUrl,
             article.titleForImg,
-            "news_preview",
+            "reviews_preview",
           )
         : null;
 
+      // Сохранение всех изображений из обзора
       const contentImagesPaths = [];
-      for (const imgSrc of imagesSrc) {
+      for (const imgSrc of allImages) {
         if (imgSrc) {
           const savedPath = await downloadImage(
             imgSrc,
             article.titleForImg,
-            "news",
+            "reviews",
           );
           if (savedPath) contentImagesPaths.push(savedPath);
         }
       }
 
-      news.push({
+      // Добавляем данные обзора
+      reviews.push({
         title: article.title,
-        content: contentRes,
+        content: contentPages.join(" "), // Объединяем весь текст из всех страниц
         previewImage: previewPath,
         images: contentImagesPaths,
         tags,
       });
     }
   }
+  // Сохранение данных в JSON
   fs.writeFileSync(
-    path.join(DATA_DIR, "news.json"),
-    JSON.stringify(news.reverse(), null, 2),
+    path.join(DATA_DIR, "reviews.json"),
+    JSON.stringify(reviews.reverse(), null, 2),
   );
 };

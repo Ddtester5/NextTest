@@ -20,7 +20,6 @@ export const downloadImage = async (
       },
     });
     fs.writeFileSync(imagePath, Buffer.from(response.data));
-    console.log(`Image downloaded: ${imagePath}`);
     return imagePath;
   } catch (error) {
     console.warn("Failed to download image:", url, error);

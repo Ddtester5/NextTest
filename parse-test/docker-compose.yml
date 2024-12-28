@@ -19,7 +19,21 @@ services:
     networks:
       # Настройка сетей
       - backend # Подключение к сети backend
- 
+  g4f:
+    image: hlohaus789/g4f:latest-slim
+    restart: always
+    container_name: g4f_service
+    ports:
+      - "1337:1337" # Пробрасываем порт 1337
+    volumes:
+      - ./har_and_cookies:/app/har_and_cookies # Монтируем директорию har_and_cookies
+      - ./generated_images:/app/generated_images # Монтируем директорию generated_images
+    command: >
+      sh -c "
+      rm -r -f /app/g4f/ &&
+      pip install -U g4f[slim] &&
+      python -m g4f --debug
+      "
 
 volumes:
   # Определение томов

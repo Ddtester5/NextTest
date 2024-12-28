@@ -3,6 +3,9 @@ import { downloadImage } from "./utils/download_image";
 import path from "path";
 import fs from "fs";
 import { DATA_DIR } from "./utils/const";
+import { translateAndUnicText } from "./utils/openai/translate_and_untc_content";
+import { translateTags } from "./utils/openai/translate_tags";
+import { translateAndUnicTitle } from "./utils/openai/translate_and_untc_title";
 
 export const parseNewsFromOnePage = async (page: Page, url?: string | null) => {
   console.log("Parsing news...");
@@ -27,7 +30,9 @@ export const parseNewsFromOnePage = async (page: Page, url?: string | null) => {
     const tags = await page
       .locator(".article-tags .float-right a")
       .evaluateAll((tags) =>
-        tags.map((tag) => tag.textContent?.trim().toLowerCase()),
+        tags
+          .map((tag) => tag.textContent?.trim().toLowerCase())
+          .filter((tag) => tag !== undefined),
       );
     const imagesSrc = await page
       .locator(".review-body > img")
@@ -54,12 +59,19 @@ export const parseNewsFromOnePage = async (page: Page, url?: string | null) => {
       }
     }
 
+    const translatedTitle = article.title
+      ? await translateAndUnicTitle(article.title)
+      : "";
+    const translatedContent = await translateAndUnicText(contentRes);
+    const translatedTags = await translateTags(tags);
     news.push({
-      title: article.title,
-      content: contentRes,
+      title: translatedTitle ? translatedTitle.replace(/\\"/g, "") : "",
+      content: translatedContent ? translatedContent.replace(/\\"/g, "") : "",
       previewImage: previewPath,
       images: contentImagesPaths,
-      tags,
+      tags: translatedTags
+        ? JSON.parse(translatedTags.replace(/\\"/g, '"'))
+        : [],
     });
   }
 
