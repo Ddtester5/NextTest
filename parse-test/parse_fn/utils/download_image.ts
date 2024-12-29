@@ -3,6 +3,7 @@ import fs from "fs";
 import { IMG_DIR } from "./const";
 import axios from "axios";
 import { getImageName } from "./get_image_name";
+import { replaceWatermarkWithSharp } from "./add_watermarck";
 
 export const downloadImage = async (
   url: string,
@@ -20,6 +21,7 @@ export const downloadImage = async (
       },
     });
     fs.writeFileSync(imagePath, Buffer.from(response.data));
+    await replaceWatermarkWithSharp(imagePath, "tech24view.ru");
     return imagePath;
   } catch (error) {
     console.warn("Failed to download image:", url, error);
