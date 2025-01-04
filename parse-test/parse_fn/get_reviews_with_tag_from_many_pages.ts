@@ -1,11 +1,17 @@
 import { Page } from "playwright";
 import { downloadImage } from "./utils/download_image";
-import path from "path";
-import fs from "fs";
-import { DATA_DIR } from "./utils/const";
+import { IsReviewAlreadyParsed } from "./utils/db_seed/is_already_parsed";
+import { translateAndUnicTitle } from "./utils/openai/translate_and_untc_title";
+import { translateAndUnicText } from "./utils/openai/translate_and_untc_content";
+import {
+  GenerateMetaDescription,
+  GenerateMetaTitle,
+} from "./utils/openai/generate_meta";
+import { translateTags } from "./utils/openai/translate_tags";
+import { ParseReviews } from "./utils/db_seed/parse_reviews";
+import { generateDataForPost } from "./utils/generate_data_for_post";
 
 export const parseReviewsFromManyPages = async (page: Page, n: number) => {
-  const reviews = [];
   for (let i = 1; i <= n; i++) {
     console.log(`Parsing reviews from page ${i}`);
     await page.goto(`https://www.gsmarena.com/reviews.php3?iPage=${i}`, {
@@ -18,6 +24,9 @@ export const parseReviewsFromManyPages = async (page: Page, n: number) => {
         elements.map((el) => ({
           titleForImg: el
             .querySelector(".review-item-content > h3")
+            ?.textContent?.trim(),
+          data: el
+            .querySelector(".meta-line > .meta-item-time")
             ?.textContent?.trim(),
           title: el
             .querySelector(".review-item-content > h3")
@@ -32,8 +41,16 @@ export const parseReviewsFromManyPages = async (page: Page, n: number) => {
       );
 
     for (const article of articles) {
-      if (!article.link) continue;
+      if (!article.link) {
+        continue;
+      }
+      if (article.title ? await IsReviewAlreadyParsed(article.title) : true) {
+        continue;
+      }
 
+      const generatedDate = article.data
+        ? generateDataForPost(article.data)
+        : new Date();
       const contentPages: string[] = [];
       const allImages: string[] = [];
       let currentUrl: string | null =
@@ -79,7 +96,9 @@ export const parseReviewsFromManyPages = async (page: Page, n: number) => {
       const tags = await page
         .locator(".article-tags .float-right a")
         .evaluateAll((tags) =>
-          tags.map((tag) => tag.textContent?.trim().toLowerCase()),
+          tags
+            .map((tag) => tag.textContent?.trim().toLowerCase())
+            .filter((el) => el !== undefined),
         );
 
       // Сохранение превью изображения
@@ -103,20 +122,39 @@ export const parseReviewsFromManyPages = async (page: Page, n: number) => {
           if (savedPath) contentImagesPaths.push(savedPath);
         }
       }
+      const translatedTitle = article.title
+        ? await translateAndUnicTitle(article.title)
+        : "";
+      const translatedContent = await translateAndUnicText(
+        contentPages.join(" "),
+      );
+      const metaTitle = await GenerateMetaTitle(
+        translatedTitle ? translatedTitle.replace(/\\"/g, "") : "",
+      );
+      const metaDescription = await GenerateMetaDescription(
+        translatedContent ? translatedContent.replace(/\\"/g, "") : "",
+      );
 
-      // Добавляем данные обзора
-      reviews.push({
-        title: article.title,
-        content: contentPages.join(" "), // Объединяем весь текст из всех страниц
-        previewImage: previewPath,
-        images: contentImagesPaths,
-        tags,
-      });
+      const translatedTags = await translateTags(tags);
+      const parsedTags = (() => {
+        try {
+          return translatedTags ? JSON.parse(translatedTags.replace(/\\"/g, '"')) : [];
+        } catch (error) {
+          console.error("Ошибка при парсинге translatedTags:", error);
+          return [];
+        }
+      })();
+      await ParseReviews(
+        metaTitle,
+        metaDescription,
+        generatedDate,
+        article.title ? article.title : "",
+        translatedTitle ? translatedTitle.replace(/\\"/g, "") : "",
+        translatedContent ? translatedContent.replace(/\\"/g, "") : "",
+        previewPath ? previewPath : "",
+        contentImagesPaths,
+        parsedTags,
+      );
     }
   }
-  // Сохранение данных в JSON
-  fs.writeFileSync(
-    path.join(DATA_DIR, "reviews.json"),
-    JSON.stringify(reviews.reverse(), null, 2),
-  );
 };

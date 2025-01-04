@@ -14,17 +14,23 @@ export const replaceWatermarkWithSharp = async (
     }
 
     // Задаем относительные пропорции для области водяного знака
-    const xRatio = 0.69;
-    const yRatio = 0.84;
-    const widthRatio = 0.3;
-    const heightRatio = 0.15;
+    let xRatio = 0.6;
+    let yRatio = 0.88;
+    let widthRatio = 0.39;
+    let heightRatio = 0.11;
+    if (width > height) {
+      xRatio = 0.69;
+      yRatio = 0.83;
+      widthRatio = 0.3;
+      heightRatio = 0.15;
+    }
 
     // Вычисляем абсолютные координаты и размеры области
     const x = Math.round(width * xRatio);
     const y = Math.round(height * yRatio);
     const regionWidth = Math.round(width * widthRatio);
     const regionHeight = Math.round(height * heightRatio);
-    const fontSize = Math.round(regionHeight * 0.34);
+    const fontSize = Math.round((regionWidth + regionHeight) * 0.07);
 
     // Извлекаем, размываем и вставляем область обратно
     const blurredRegion = await sharp(imagePath)
@@ -60,7 +66,7 @@ export const replaceWatermarkWithSharp = async (
               </defs>
               <rect x="0" y="0" width="${regionWidth}" height="${regionHeight}" fill="url(#grad)" />
               <text 
-                x="${regionWidth / 2}" 
+                x="${regionWidth / 1.9}" 
                 y="${regionHeight / 1.5}" 
                 font-size="${fontSize}" 
                 fill="rgba(255, 255, 255, 0.9)" 

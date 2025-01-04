@@ -1,15 +1,17 @@
 import { Page } from "playwright";
 import { downloadImage } from "./utils/download_image";
-import path from "path";
-import fs from "fs";
-import { DATA_DIR } from "./utils/const";
 import { translateAndUnicTitle } from "./utils/openai/translate_and_untc_title";
 import { translateAndUnicText } from "./utils/openai/translate_and_untc_content";
 import { translateTags } from "./utils/openai/translate_tags";
 import { generateDataForPost } from "./utils/generate_data_for_post";
+import { IsNewsAlresdyParsed } from "./utils/db_seed/is_already_parsed";
+import { SeedNews } from "./utils/db_seed/parse_news";
+import {
+  GenerateMetaDescription,
+  GenerateMetaTitle,
+} from "./utils/openai/generate_meta";
 
 export const parseNewsFromManyPages = async (page: Page, n: number) => {
-  const news = [];
   for (let i = 1; i <= n; i++) {
     console.log(`Parsing news from page ${i}`);
 
@@ -26,14 +28,17 @@ export const parseNewsFromManyPages = async (page: Page, n: number) => {
       })),
     );
     for (const article of articles) {
-      if (!article.link) continue;
+      if (!article.link) {
+        continue;
+      }
+      if (article.title ? await IsNewsAlresdyParsed(article.title) : true) {
+        continue;
+      }
       await page.goto(`https://www.gsmarena.com/${article.link}`);
       const date = await page.locator(".float-left .dtreviewed").textContent();
-      const generatedDate = date
-        ? generateDataForPost(date)
-        : new Date((Math.floor(Date.now() / 1000) - 2678400) * 1000);
+      const generatedDate = date ? generateDataForPost(date) : new Date();
       const content = await page.locator(".review-body p").allTextContents();
-      const contentRes = content.join(" ");
+      const contentResponse = content.join(" ");
       const tags = await page
         .locator(".article-tags .float-right a")
         .evaluateAll((tags) =>
@@ -69,22 +74,36 @@ export const parseNewsFromManyPages = async (page: Page, n: number) => {
       const translatedTitle = article.title
         ? await translateAndUnicTitle(article.title)
         : "";
-      const translatedContent = await translateAndUnicText(contentRes);
+      const translatedContent = await translateAndUnicText(contentResponse);
+      const metaTitle = await GenerateMetaTitle(
+        translatedTitle ? translatedTitle.replace(/\\"/g, "") : "",
+      );
+      const metaDescription = await GenerateMetaDescription(
+        translatedContent ? translatedContent.replace(/\\"/g, "") : "",
+      );
+
       const translatedTags = await translateTags(tags);
-      news.push({
-        date: generatedDate,
-        title: translatedTitle ? translatedTitle.replace(/\\"/g, "") : "",
-        content: translatedContent ? translatedContent.replace(/\\"/g, "") : "",
-        previewImage: previewPath,
-        images: contentImagesPaths,
-        tags: translatedTags
-          ? JSON.parse(translatedTags.replace(/\\"/g, '"'))
-          : [],
-      });
+      const parsedTags = (() => {
+        try {
+          return translatedTags
+            ? JSON.parse(translatedTags.replace(/\\"/g, '"'))
+            : [];
+        } catch (error) {
+          console.error("Ошибка при парсинге translatedTags:", error);
+          return [];
+        }
+      })();
+      await SeedNews(
+        metaTitle,
+        metaDescription,
+        generatedDate,
+        article.title ? article.title : "",
+        translatedTitle ? translatedTitle.replace(/\\"/g, "") : "",
+        translatedContent ? translatedContent.replace(/\\"/g, "") : "",
+        previewPath ? previewPath : "",
+        contentImagesPaths,
+        parsedTags,
+      );
     }
   }
-  fs.writeFileSync(
-    path.join(DATA_DIR, "news.json"),
-    JSON.stringify(news.reverse(), null, 2),
-  );
 };

@@ -16,7 +16,7 @@ export const translateAndUnicTitle = async (
         Не добавляй комментарии, пояснения, символы(\`'"/|\<>) . Текст: "${text}"`,
       },
     ],
-    model: "gpt-4o",
+    model: "gpt-4",
   });
   return chatCompletion.choices[0].message.content;
 };

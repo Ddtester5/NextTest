@@ -1,6 +1,5 @@
 import path from "path";
 import fs from "fs";
-import { IMG_DIR } from "./const";
 import axios from "axios";
 import { getImageName } from "./get_image_name";
 import { replaceWatermarkWithSharp } from "./add_watermarck";
@@ -12,7 +11,7 @@ export const downloadImage = async (
 ) => {
   try {
     const imgName = getImageName(textForFilename);
-    const imagePath = path.join(IMG_DIR, imgDir, imgName);
+    const imagePath = path.join("./img", imgDir, imgName);
     const response = await axios.get(url, {
       responseType: "arraybuffer",
       headers: {

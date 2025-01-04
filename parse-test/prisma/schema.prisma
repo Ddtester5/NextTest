@@ -12,6 +12,9 @@ model News {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  meta_title       String
+  meta_description String
+
   title        String   @unique
   content      String
   previewImage String?  @map("preview_image")
@@ -37,6 +40,9 @@ model Reviews {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  meta_title       String
+  meta_description String
+
   title        String   @unique
   content      String
   previewImage String?  @map("preview_image")
@@ -45,4 +51,14 @@ model Reviews {
   tags Tag[] @relation("ReviewsTags")
 
   views Int @default(0)
+}
+
+model NewsParsedTitles {
+  id    String @id @default(cuid())
+  title String @unique
+}
+
+model ReviewsParsedTitles {
+  id    String @id @default(cuid())
+  title String @unique
 }

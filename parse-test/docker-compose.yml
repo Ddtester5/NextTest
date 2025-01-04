@@ -33,7 +33,9 @@ services:
       rm -r -f /app/g4f/ &&
       pip install -U g4f[slim] &&
       python -m g4f --debug
-      "
+    networks:
+      # Настройка сетей
+      - backend # Подключение к сети backend  "
 
 volumes:
   # Определение томов

@@ -14,21 +14,10 @@ export const translateTags = async (tags: string[]): Promise<string | null> => {
 Ответь строго массивом с результатами в формате: ["tag1", "tag2", ...].Если тэгов нет, то пустой массив. Не добавляй комментарии, пояснения, символы(\`'"/|\<>) или текст вне массива. Вот список тэгов: ${JSON.stringify(tags)}`,
       },
     ],
-    model: "gpt-4o",
+    model: "gpt-4",
   });
 
-  if (
-    !chatCompletion ||
-    !chatCompletion.choices ||
-    chatCompletion.choices.length === 0
-  ) {
-    throw new Error("Ошибка: Ответ от API пустой или недействительный.");
-  }
-
-  try {
-    const result = chatCompletion.choices[0].message.content;
-    return result;
-  } catch (error) {
-    throw new Error("Ошибка при разборе ответа в JSON: " + error);
-  }
+  return chatCompletion.choices[0].message.content
+    ? chatCompletion.choices[0].message.content
+    : "";
 };
