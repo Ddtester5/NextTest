@@ -1,6 +1,6 @@
 import { Page } from "@playwright/test";
 
-export const parseModelssrlByBrand = async (brandUrl: string, page: Page):string[] => {
+export const parseModelsUrlByBrand = async (brandUrl: string, page: Page):string[] => {
   const allModelsUrl: string[] = [];
   let currentPage: string | null = `https://www.gsmarena.com/${brandUrl}`;
 
